@@ -1,1 +1,59 @@
+package io.cdap.wrangler.steps.transformation;
+
+import io.cdap.wrangler.api.*;
+import io.cdap.wrangler.api.parser.*;
+import java.util.*;
+
+public class AggregateStats implements Directive {
+
+  private String sizeCol;
+  private String timeCol;
+  private String totalSizeCol;
+  private String totalTimeCol;
+
+  private long totalBytes = 0;
+  private long totalMillis = 0;
+
+  @Override
+  public UsageDefinition define() {
+    return UsageDefinition.builder("aggregate-stats")
+      .define("size-column", TokenType.COLUMN_NAME)
+      .define("time-column", TokenType.COLUMN_NAME)
+      .define("total-size-output", TokenType.COLUMN_NAME)
+      .define("total-time-output", TokenType.COLUMN_NAME)
+      .build();
+  }
+
+  @Override
+  public void initialize(Arguments args) {
+    sizeCol = ((ColumnName) args.value("size-column")).value();
+    timeCol = ((ColumnName) args.value("time-column")).value();
+    totalSizeCol = ((ColumnName) args.value("total-size-output")).value();
+    totalTimeCol = ((ColumnName) args.value("total-time-output")).value();
+  }
+
+  @Override
+  public List<Row> execute(List<Row> rows, ExecutorContext context) throws DirectiveExecuteException {
+    for (Row row : rows) {
+      Object sizeVal = row.getValue(sizeCol);
+      Object timeVal = row.getValue(timeCol);
+
+      if (sizeVal != null) {
+        ByteSize bs = new ByteSize(sizeVal.toString());
+        totalBytes += bs.getBytes();
+      }
+
+      if (timeVal != null) {
+        TimeDuration td = new TimeDuration(timeVal.toString());
+        totalMillis += td.getMillis();
+      }
+    }
+
+    Map<String, Object> result = new HashMap<>();
+    result.put(totalSizeCol, totalBytes / (1024.0 * 1024.0)); // MB
+    result.put(totalTimeCol, totalMillis / 1000.0);           // seconds
+
+    return Collections.singletonList(new Row(result));
+  }
+}
 
