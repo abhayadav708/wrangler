@@ -311,3 +311,12 @@ fragment Int
 fragment Digit
  : [0-9]
  ;
+// Byte size units like 10KB, 2.5MB, 1GB
+BYTE_SIZE: DIGITS [kKmMgG]? 'B';
+
+// Time duration units like 1500ms, 2s, 1.5m
+TIME_DURATION: DIGITS ('ms' | 's' | 'm' | 'h');
+
+// Helper fragment for numeric values
+fragment DIGITS: [0-9]+ ('.' [0-9]+)?;
+
